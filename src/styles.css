@@ -1,0 +1,129 @@
+@font-face {
+    font-family: "Roboto";
+    src: url("./assets/fonts/Roboto-Medium.ttf");
+}
+
+div[class*="hidden"] {
+    display: none !important;
+}
+
+body {
+    background: #303030;
+    color: white;
+    margin: 0;
+    box-sizing: border-box;
+    padding: 8px;
+    font-family: "Roboto", monospace;
+    font-size: 24px;
+}
+
+#custom_backlight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+#custom_backlight textarea, #custom_backlight #custom_backlight_button {
+    margin: 8px !important;
+}
+
+p, label, h1 {
+    margin: 8px;
+}
+
+.left {
+    margin: 6px 0;
+}
+
+.right {
+    justify-self: end;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+}
+
+.row.nogrid {
+    display: block;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .2s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 5px;
+    bottom: 5px;
+    background-color: white;
+    transition: .2s;
+}
+
+input:checked + .slider {
+    background-color: #239292;
+}
+
+input:checked + .slider:before {
+    transform: translateX(21px);
+}
+
+input[type=color] {
+    width: 64px;
+}
+
+input[type=color]::-webkit-color-swatch {
+    height: 20px;
+    border: 4px solid #f4f4f4;
+    border-radius: 0;
+}
+
+input[type=number] {
+    border-radius: 0;
+    border: 2px solid #f4f4f4;
+    background: #f4f4f4
+}
+
+select {
+    border-radius: 0;
+}
+
+select, input[type=color] {
+    cursor: pointer;
+}
+
+button {
+    border: 2px solid #f4f4f4;
+    background-color: #f4f4f4;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+button:hover {
+    background-color: #afafaf;
+    border-color: #afafaf;
+}

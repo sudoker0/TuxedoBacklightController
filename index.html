@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="./src/styles.css">
+        <script type="module" src="./src/main.ts" defer></script>
+        <title>Tuxedo Keyboard Backlight Controller</title>
+    </head>
+    <body>
+        <div id="error" class="hidden">
+            <h1 id="error_title">ERROR: $_error_title</h1>
+            <p id="error_detail">Detail: $_error_detail</p>
+            <p id="error_solutions">Solutions: $_error_solutions</p>
+        </div>
+        <div id="main">
+            <div class="row" id="enableBacklight">
+                <div class="left">
+                    <label>Enable backlight:</label>
+                </div>
+                <div class="right">
+                    <label class="switch">
+                        <input type="checkbox" class="function">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="row dg-1" id="backlightMode">
+                <div class="left">
+                    <label for="blmode">Backlight mode:</label>
+                </div>
+                <div class="right">
+                    <select name="blmode" id="blmode" class="function">
+                        <option value="0">Color</option>
+                        <option value="1">Breathe</option>
+                        <option value="2">Cycle</option>
+                        <option value="3">Dance</option>
+                        <option value="4">Flash</option>
+                        <option value="5">Random Color</option>
+                        <option value="6">Tempo</option>
+                        <option value="7">Wave</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row dg-1 dg-2" id="brightness">
+                <div class="left">
+                    <label for="blbrightness">Brightness:</label>
+                </div>
+                <div class="right">
+                    <input type="number" name="blbrightness" id="blbrightness" min="0" max="255" value="0" class="function">
+                </div>
+            </div>
+            <div class="row dg-1 dg-2" id="colorMode">
+                <div class="left">
+                    <label for="clmode">Color mode:</label>
+                </div>
+                <div class="right">
+                    <select name="clmode" id="clmode" class="function">
+                        <option value="single">Single</option>
+                        <option value="multiple">Multiple</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row dg-1 dg-2 dg-3" id="colorSingle">
+                <div class="left">
+                    <label for="blcolor">Color:</label>
+                </div>
+                <div class="right">
+                    <input type="color" name="blcolor" id="blcolor" class="function">
+                </div>
+            </div>
+            <div class="row dg-1 dg-2 dg-4" id="colorLeft">
+                <div class="left">
+                    <label for="blcolorleft">Color left:</label>
+                </div>
+                <div class="right">
+                    <input type="color" name="blcolorleft" id="blcolorleft" class="function">
+                </div>
+            </div>
+            <div class="row dg-1 dg-2 dg-4" id="colorMiddle">
+                <div class="left">
+                    <label for="blcolormiddle">Color middle:</label>
+                </div>
+                <div class="right">
+                    <input type="color" name="blcolormiddle" id="blcolormiddle" class="function">
+                </div>
+            </div>
+            <div class="row dg-1 dg-2 dg-4" id="colorRight">
+                <div class="left">
+                    <label for="blcolorright">Color right:</label>
+                </div>
+                <div class="right">
+                    <input type="color" name="blcolorright" id="blcolorright" class="function">
+                </div>
+            </div>
+            <div class="row dg-1 dg-2 dg-4" id="colorExtra">
+                <div class="left">
+                    <label for="blcolorextra">Color extra:</label>
+                </div>
+                <div class="right">
+                    <input type="color" name="blcolorextra" id="blcolorextra" class="function">
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
