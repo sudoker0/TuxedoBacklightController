@@ -1,5 +1,6 @@
 # Better Tuxedo Keyboard Backlight Controller
 A minimal UI to control the backlight of Tuxedo/Clevo compatible keyboard.
+![Screenshot of the program](./screenshot.png)
 
 ## I. Why is it better?
  - It's bundled in an AppImage (which you can find in th Releases page) so you don't have to install any package.
