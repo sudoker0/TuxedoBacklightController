@@ -1,20 +1,35 @@
 @font-face {
-    font-family: "Roboto";
-    src: url("./assets/fonts/Roboto-Medium.ttf");
+    font-family: "Roboto Mono";
+    src: url("./assets/fonts/RobotoMono-Medium.ttf");
 }
 
-div[class*="hidden"] {
+:root {
+    --foreground: #f4f4f4;
+    --background: #303030;
+    --button-hover: #afafaf;
+    --dialog-overlay: #101010b3;
+    --dialog-background: #0e0e0e;
+    --slider-background: #cccccc;
+    --slider-checked: #239292;
+    --font-family: "Roboto Mono", monospace;
+}
+
+[class*="hidden"] {
     display: none !important;
 }
 
 body {
-    background: #303030;
-    color: white;
+    background: var(--background);
+    color: var(--foreground);
     margin: 0;
     box-sizing: border-box;
     padding: 8px;
-    font-family: "Roboto", monospace;
+    font-family: var(--font-family);
     font-size: 24px;
+}
+
+* {
+    font-family: var(--font-family);
 }
 
 #custom_backlight {
@@ -27,7 +42,7 @@ body {
     margin: 8px !important;
 }
 
-p, label, h1 {
+p, label, h1, button {
     margin: 8px;
 }
 
@@ -43,10 +58,6 @@ p, label, h1 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
-}
-
-.row.nogrid {
-    display: block;
 }
 
 .switch {
@@ -69,7 +80,7 @@ p, label, h1 {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: var(--slider-background);
     transition: .2s;
 }
 
@@ -80,12 +91,12 @@ p, label, h1 {
     width: 14px;
     left: 5px;
     bottom: 5px;
-    background-color: white;
+    background-color: var(--foreground);
     transition: .2s;
 }
 
 input:checked + .slider {
-    background-color: #239292;
+    background-color: var(--slider-checked);
 }
 
 input:checked + .slider:before {
@@ -98,14 +109,14 @@ input[type=color] {
 
 input[type=color]::-webkit-color-swatch {
     height: 20px;
-    border: 4px solid #f4f4f4;
+    border: 4px solid var(--foreground);
     border-radius: 0;
 }
 
 input[type=number] {
     border-radius: 0;
-    border: 2px solid #f4f4f4;
-    background: #f4f4f4
+    border: 2px solid var(--foreground);
+    background: var(--foreground)
 }
 
 select {
@@ -117,13 +128,47 @@ select, input[type=color] {
 }
 
 button {
-    border: 2px solid #f4f4f4;
-    background-color: #f4f4f4;
+    border: 2px solid var(--foreground);
+    background-color: var(--foreground);
     cursor: pointer;
     font-size: 18px;
 }
 
 button:hover {
-    background-color: #afafaf;
-    border-color: #afafaf;
+    background-color: var(--button-hover);
+    border-color: var(--button-hover);
+}
+
+button:disabled {
+    background-color: var(--button-hover);
+    border-color: var(--button-hover);
+}
+
+#ckm_input_script {
+    font-size: 16px;
+}
+
+.dialog {
+    max-width: 100%;
+    width: 600px;
+    background-color: var(--dialog-background);
+    padding: 16px;
+}
+
+.dialog h1 {
+    font-size: 28px;
+}
+
+.dialog p {
+    font-size: 18px;
+}
+
+.dialog_background {
+    background-color: var(--dialog-overlay);
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

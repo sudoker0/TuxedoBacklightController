@@ -9,11 +9,7 @@
         <title>Tuxedo Keyboard Backlight Controller</title>
     </head>
     <body>
-        <div id="error" class="hidden">
-            <h1 id="error_title">ERROR: $_error_title</h1>
-            <p id="error_detail">Detail: $_error_detail</p>
-            <p id="error_solutions">Solutions: $_error_solutions</p>
-        </div>
+        <div id="dialog_container"></div>
         <div id="main">
             <div class="row" id="enableBacklight">
                 <div class="left">
@@ -40,9 +36,21 @@
                         <option value="5">Random Color</option>
                         <option value="6">Tempo</option>
                         <option value="7">Wave</option>
+                        <option value="custom">Custom...</option>
                     </select>
                 </div>
             </div>
+            <div class="dg-1 dg-5 dg-6" id="ckm_input_script">
+                <p>This is where you can input your script for your keyboard backlight animation.</p>
+                <p>For documentation, refer to this site: </p>
+                <p>Please note that while I've taken precaution to make sure the script can't mess around with the UI or the system, running script from unknown source is usually not very safe. So be sure to look into the script and check if it's safe or not.</p>
+                <p>Another note: This feature is currently in Beta, and may contains bugs.</p>
+                <textarea name="ckm_script" id="ckm_script" cols="30" rows="10"></textarea>
+                <div>
+                    <button id="register_ckm_script">Apply</button>
+                </div>
+            </div>
+            <div class="dg-1 dg-5 dg-7" id="ckm_configurable_settings"></div>
             <div class="row dg-1 dg-2" id="brightness">
                 <div class="left">
                     <label for="blbrightness">Brightness:</label>

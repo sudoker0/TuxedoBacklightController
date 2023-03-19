@@ -1,3 +1,5 @@
+// TODO: Fix bug: dialog
+
 import { invoke } from "@tauri-apps/api/tauri";
 
 type Info = {
@@ -9,6 +11,24 @@ type Info = {
     mode: string,
     state: string,
 }
+const INFO_KEY = ["brightness", "color_left", "color_center", "color_right", "color_extra", "mode", "state"]
+
+enum ConfigurableSettingsType {
+    COLOR = "color",
+    NUMBER = "number",
+    BOOLEAN = "boolean"
+}
+
+type CKMHeaderData = {
+    name: string,
+    configurable_settings: {
+        id: string,
+        description: string,
+        type: ConfigurableSettingsType,
+    }[],
+}
+const CKMHEADERDATA_KEY = ["name", "configurable_settings"]
+const CKMHEADERDATA_CS_KEY = ["id", "description", "type"]
 
 enum KeyboardRegion {
     LEFT,
@@ -23,22 +43,10 @@ enum ErrorType {
     WRITE_FILE_ERROR
 }
 
-interface Template {
-    [key: string]: string
-}
-
-function replaceHTML(elm: HTMLElement, data: Template, prefix: string = "$_") {
-    const alternate_prefix = "id_dlr_";
-
-    for (const i in data) {
-        const old = elm.innerHTML;
-        const span: () => HTMLElement | null = () =>
-            elm.querySelector(`span.reactive#${alternate_prefix}${i}`)
-        if (span() == null) elm.innerHTML =
-            old.replace(`${prefix}${i}`, `
-                <span class="reactive" id="${alternate_prefix}${i}"></span>`)
-        span()!.innerText = data[i]
-    }
+enum DialogType {
+    UNRECOVERABLE,
+    ALERT,
+    CONFIRM
 }
 
 const qSel = function<T extends HTMLElement>(sel: string) { return document.querySelector<T>(sel) }
@@ -57,9 +65,101 @@ function optionIndexWithValue(selectElm: HTMLSelectElement | null, value: string
     return index
 }
 
+function validateNumberInput(elm: HTMLInputElement) {
+    elm.value = "1"
+    elm.addEventListener("keyup", _ => {
+        var value = ""
+        for (const i of elm.value) {
+            if (i.trim() == "") continue
+            if (!isNaN(Number(i))) value += i
+        }
+        if (value == "") value = "1"
+        elm.value = value
+    })
+}
+
+function checkIfObjectContainsKeys(obj: Object, listOfKeys: string[]) {
+    var good = true
+    checkKey: for (const key of listOfKeys) {
+        var pass = true
+        var newObj = obj
+        checkSplitKey: for (const k of key.split(".")) {
+            if (newObj.hasOwnProperty(k)) {
+                //@ts-ignore
+                newObj = newObj[k]
+            } else {
+                pass = false
+                break checkSplitKey
+            }
+        }
+        if (!pass) {
+            good = false
+            break checkKey
+        }
+    }
+    return good
+}
+
+function createDialog(title: string, content: string, type: DialogType, id: string = "") {
+    const container = qSel("#dialog_container")
+    const dialogContainer = document.createElement("div")
+    const dialogBackground = document.createElement("div")
+    const titleElm = document.createElement("h1")
+    const contentElm = document.createElement("p")
+    const buttonContainer = document.createElement("div")
+    var buttons: HTMLButtonElement[] = []
+
+    const show = () => {
+        container?.append(dialogBackground)
+        dialogBackground?.classList.remove("hidden")
+    }
+    const destroy = () => {
+        container?.removeChild(dialogBackground)
+        dialogBackground?.classList.add("hidden")
+    }
+
+    titleElm.innerText = title
+    contentElm.innerText = content
+
+    dialogBackground.classList.add("dialog_background", "hidden")
+    dialogContainer.classList.add("dialog")
+    dialogContainer.id = id
+    titleElm.classList.add("dialog_title")
+    contentElm.classList.add("dialog_content")
+    buttonContainer.classList.add("dialog_buttons")
+
+    switch (type) {
+        case DialogType.UNRECOVERABLE:
+            break
+        case DialogType.ALERT:
+            const ok = document.createElement("button")
+            ok.innerText = "OK"
+            ok.addEventListener("click", destroy)
+            buttons.push(ok)
+            break
+        case DialogType.CONFIRM:
+            const yes = document.createElement("button")
+            yes.innerText = "Yes"
+            const no = document.createElement("button")
+            no.innerText = "No"
+            yes.addEventListener("click", destroy)
+            no.addEventListener("click", destroy)
+            buttons.push(yes, no)
+            break
+    }
+
+    buttonContainer.append(...buttons)
+    dialogContainer.append(titleElm, contentElm, buttonContainer)
+    dialogBackground.append(dialogContainer)
+
+    return {
+        element: dialogContainer,
+        show,
+        destroy,
+    }
+}
+
 async function invokeError(errorType: ErrorType) {
-    const error_dialog = qSel("#error")
-    if (error_dialog == null) return
     var detail = {
         title: "",
         info: "",
@@ -89,14 +189,8 @@ async function invokeError(errorType: ErrorType) {
             break
     }
 
-    replaceHTML(error_dialog, {
-        error_title: detail.title,
-        error_detail: detail.info,
-        error_solutions: detail.solutions
-    })
-
-    qSel("#error")?.classList.remove("hidden")
-    qSel("#main")?.classList.add("hidden")
+    const dialog = createDialog(`ERROR: ${detail.title}`, `Detail: ${detail.info}\n\nSolutions: ${detail.solutions}`, DialogType.UNRECOVERABLE)
+    dialog.show()
 
     throw new Error("this is to stop everything")
 }
@@ -111,8 +205,8 @@ async function getKeyboardInfo() {
 }
 
 async function setKeyboardInfo(prevData: Info, data: Info) {
-    const success = await invoke("write_tuxedo_config", {prevInfo: prevData, info: data})
-    if (!success) await invokeError(ErrorType.WRITE_FILE_ERROR)
+    const success: boolean = await invoke("write_tuxedo_config", {prevInfo: prevData, info: data})
+    return success
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -127,10 +221,19 @@ window.addEventListener("DOMContentLoaded", async () => {
     const colorM = qSel<HTMLInputElement>("#colorMiddle .function")
     const colorR = qSel<HTMLInputElement>("#colorRight .function")
     const colorE = qSel<HTMLInputElement>("#colorExtra .function")
+    const registerCKMScriptButton = qSel<HTMLButtonElement>("#register_ckm_script")
 
     var goodPrevBrightness = "0"
     var infoCopy: Info | null = null
     var single = false
+
+    //? --- CKM related (CKM: Custom Keyboard Mode) ---
+    var ckmWorker: Worker | null = null
+    var ckmJSCode = ""
+    var startCKMLoop = false
+    var prevDeltaTime = 0 //? For the CKM loop
+    var scriptApplied = false
+    var lastInfo: Info | null = null
 
     const changeEnableBl = async () => {
         if (enableBl == null || infoCopy == null) return
@@ -138,22 +241,20 @@ window.addEventListener("DOMContentLoaded", async () => {
         const prevCopy = structuredClone(infoCopy)
 
         infoCopy.state = enabled ? "1" : "0"
-        await setKeyboardInfo(prevCopy, infoCopy)
+        const good = await setKeyboardInfo(prevCopy, infoCopy)
+        if (!good) await invokeError(ErrorType.WRITE_FILE_ERROR)
     }
 
     //? change blacklight mode
     const changeBlMode = async () => {
         if (blMode == null || infoCopy == null) return
         const mode = blMode.selectedOptions[0].value
-        console.log(mode)
-
-        if (mode == "custom") {
-            return
-        }
+        if (mode == "custom") return
 
         const prevCopy = structuredClone(infoCopy)
         infoCopy.mode = mode
-        await setKeyboardInfo(prevCopy, infoCopy)
+        const good = await setKeyboardInfo(prevCopy, infoCopy)
+        if (!good) await invokeError(ErrorType.WRITE_FILE_ERROR)
     }
 
     const changeBrightness = async () => {
@@ -165,7 +266,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 
         const prevCopy = structuredClone(infoCopy)
         infoCopy.brightness = Number(brightness.value).toString()
-        await setKeyboardInfo(prevCopy, infoCopy)
+        const good = await setKeyboardInfo(prevCopy, infoCopy)
+        if (!good) await invokeError(ErrorType.WRITE_FILE_ERROR)
     }
 
     const changeBlColor = async (region: KeyboardRegion) => {
@@ -191,23 +293,33 @@ window.addEventListener("DOMContentLoaded", async () => {
             }
         }
 
-        await setKeyboardInfo(prevCopy, infoCopy)
+        const good = await setKeyboardInfo(prevCopy, infoCopy)
+        if (!good) await invokeError(ErrorType.WRITE_FILE_ERROR)
     }
 
     function uiRefresh() {
+        const needToHide = [2, 3, 4, 5, 6, 7]
+        for (const i of needToHide) {
+            qSelAll(`.dg-${i}`)
+            .forEach(v => v.classList.add(`hidden-dg-${i}`))
+        }
+
         qSelAll(".dg-1")
             .forEach(v => v.classList[enableBl!.checked ? "remove" : "add"]("hidden-dg-1"))
-        qSelAll(".dg-2")
-            .forEach(v => v.classList.add("hidden-dg-2"))
-        qSelAll(".dg-3")
-            .forEach(v => v.classList.add("hidden-dg-3"))
-        qSelAll(".dg-4")
-            .forEach(v => v.classList.add("hidden-dg-4"))
+
+        qSelAll(".dg-6")
+            .forEach(v => v.classList[scriptApplied ? "add" : "remove"]("hidden-dg-6"))
+        qSelAll(".dg-7")
+            .forEach(v => v.classList[scriptApplied ? "remove" : "add"]("hidden-dg-7"))
 
         switch (blMode!.selectedOptions[0].value) {
             case "0":
                 qSelAll(".dg-2")
                     .forEach(v => v.classList.remove("hidden-dg-2"))
+                break
+            case "custom":
+                qSelAll(".dg-5")
+                    .forEach(v => v.classList.remove("hidden-dg-5"))
                 break
         }
 
@@ -247,18 +359,251 @@ window.addEventListener("DOMContentLoaded", async () => {
         }
         blMode!.selectedIndex = optionIndexWithValue(blMode, info[0].mode)
         brightness!.value = info[0].brightness
-        color!.value = "#" + info[0].color_left
-        colorL!.value = "#" + info[0].color_left
-        colorM!.value = "#" + info[0].color_center
-        colorR!.value = "#" + info[0].color_right
-        colorE!.value = "#" + info[0].color_extra
+        color!.value = "#" + info[0].color_left.substring(2)
+        colorL!.value = "#" + info[0].color_left.substring(2)
+        colorM!.value = "#" + info[0].color_center.substring(2)
+        colorR!.value = "#" + info[0].color_right.substring(2)
+        colorE!.value = "#" + info[0].color_extra.substring(2)
         const c = [info[0].color_left, info[0].color_center, info[0].color_right, info[0].color_extra]
         colorMode!.selectedIndex = c.every((v, i, a) => i === 0 || v === a[i - 1]) ? 0 : 1
+    }
+
+    const beginCustomKeyboardMode = async (jscode: string) => {
+        return new Promise((resolve, reject) => {
+            const timeOutTimer = setTimeout(() => {
+                errorHandle(
+                    "ERROR: TIMED_OUT",
+                    "The provided script did not respond. Please check if the script was set up correctly.")
+            }, 5000) //! change
+
+            const errorHandle = (title: string, description: string) => {
+                console.log("error")
+                createDialog(title, description, DialogType.ALERT).show()
+                startCKMLoop = false
+                reject()
+            }
+            const settingsPage = qSel("#ckm_configurable_settings")
+            if (settingsPage == null) return
+
+            while (settingsPage.lastElementChild) {
+                settingsPage.removeChild(settingsPage.lastElementChild);
+            }
+
+            ckmWorker = new Worker(`data:text/javascript;base64,${btoa(jscode)}`)
+            //? Ask the CKM for info including:
+            //? name and list of settings user can configure that the CKM can use.
+            ckmWorker.postMessage({"status": "need_more_info"})
+            ckmWorker.addEventListener("message", (ev) => {
+                const data = ev.data as CKMHeaderData
+                if (!checkIfObjectContainsKeys(data, CKMHEADERDATA_KEY)) {
+                    errorHandle(
+                        "ERROR: INVALID_SCRIPT",
+                        "The provided script has send invalid data to the program. Please check the script for error and the documentation for more info.")
+                    clearTimeout(timeOutTimer)
+                    return
+                }
+
+                for (const i of data!.configurable_settings) {
+                    if (!checkIfObjectContainsKeys(i, CKMHEADERDATA_CS_KEY)) {
+                        errorHandle(
+                            "ERROR: INVALID_SCRIPT",
+                            "The provided script has send invalid data to the program. Please check the script for error and the documentation for more info.")
+                        clearTimeout(timeOutTimer)
+                        return
+                    }
+
+                    const textElm = document.createElement("label")
+                    var inputElm: HTMLElement | null = null
+                    textElm.innerText = i.description
+
+                    switch (i.type) {
+                        case ConfigurableSettingsType.NUMBER:
+                            inputElm = document.createElement("input")
+                            inputElm.setAttribute("type", "number")
+                            inputElm.setAttribute("data-type", ConfigurableSettingsType.NUMBER)
+                            inputElm.classList.add("function")
+                            validateNumberInput(inputElm as HTMLInputElement)
+                            break
+                        case ConfigurableSettingsType.COLOR:
+                            inputElm = document.createElement("input")
+                            inputElm.setAttribute("type", "color")
+                            inputElm.setAttribute("data-type", ConfigurableSettingsType.COLOR)
+                            inputElm.classList.add("function")
+                            break
+                        case ConfigurableSettingsType.BOOLEAN:
+                            inputElm = document.createElement("label")
+                            inputElm.classList.add("switch")
+
+                            const switchInput = document.createElement("input")
+                            const switchSlider = document.createElement("span")
+                            switchInput.setAttribute("type", "checkbox")
+                            switchInput.setAttribute("data-type", ConfigurableSettingsType.BOOLEAN)
+                            switchInput.classList.add("function")
+                            switchSlider.classList.add("slider")
+
+                            inputElm.append(switchInput, switchSlider)
+                            break
+                    }
+
+                    const container = document.createElement("div")
+                    const left = document.createElement("div")
+                    const right = document.createElement("div")
+                    container.setAttribute("data-configurable", i.id)
+                    container.classList.add("row", "ckm-setting")
+                    left.classList.add("left")
+                    right.classList.add("right")
+
+                    left.append(textElm)
+                    right.append(inputElm)
+                    container.append(left, right)
+
+                    settingsPage.append(container)
+                }
+
+                const startButton = document.createElement("button")
+                const stopButton = document.createElement("button")
+                const setScriptButton = document.createElement("button")
+                const buttonContainer = document.createElement("div")
+                stopButton.disabled = true
+
+                startButton.innerText = "Start"
+                startButton.addEventListener("click", () => {
+                    if (startCKMLoop) return
+                    lastInfo = structuredClone(infoCopy)
+
+                    startCKMLoop = true
+                    startButton.disabled = true
+                    stopButton.disabled = false
+
+                    if (ckmWorker == null) ckmWorker = new Worker(`data:text/javascript;base64,${btoa(jscode)}`)
+                    ckmWorker.addEventListener("message", async (ev) => {
+                        const newInfo = JSON.parse(JSON.stringify(ev.data)) as Info
+                        if (checkIfObjectContainsKeys(newInfo, INFO_KEY) && infoCopy != null) {
+                            const good = await setKeyboardInfo(infoCopy, newInfo)
+                            if (!good) {
+                                errorHandle(
+                                    "ERROR: INVALID_SCRIPT",
+                                    "The provided script has send invalid data to the program. Please check the script for error and the documentation for more info.")
+                                stopCustomKeyboardMode()
+                                return
+                            }
+
+                            if (startCKMLoop) requestAnimationFrame(startCustomKeyboardMode)
+                            infoCopy = newInfo
+                        } else {
+                            errorHandle(
+                                "ERROR: INVALID_SCRIPT",
+                                "The provided script has send invalid data to the program. Please check the script for error and the documentation for more info.")
+                            stopCustomKeyboardMode()
+                            return
+                        }
+                    })
+                    requestAnimationFrame(startCustomKeyboardMode)
+                })
+
+                stopButton.innerText = "Stop"
+                stopButton.addEventListener("click", async () => {
+                    if (infoCopy == null) return
+                    stopCustomKeyboardMode()
+                    startButton.disabled = false
+                    stopButton.disabled = true
+
+                    if (lastInfo != null)
+                        await setKeyboardInfo(infoCopy, lastInfo)
+                    lastInfo = null
+                })
+
+                setScriptButton.innerText = "Change script"
+                setScriptButton.addEventListener("click", async () => {
+                    if (infoCopy == null) return
+                    scriptApplied = false
+                    startButton.disabled = true
+                    stopButton.disabled = false
+                    stopCustomKeyboardMode()
+
+                    if (lastInfo != null)
+                        await setKeyboardInfo(infoCopy, lastInfo)
+                    lastInfo = null
+                })
+
+                buttonContainer.append(startButton, stopButton, setScriptButton)
+                settingsPage.append(buttonContainer)
+
+                clearTimeout(timeOutTimer)
+                resolve(null)
+            }, {
+                once: true
+            })
+        })
+    }
+
+    const startCustomKeyboardMode = async (newDeltaTime: number) => {{
+        if (!startCKMLoop) return
+        const delta = newDeltaTime - prevDeltaTime
+        prevDeltaTime = newDeltaTime
+        if (delta > 1100) {
+            requestAnimationFrame(startCustomKeyboardMode)
+            return
+        }
+
+        var settings: { [key: string]: string | boolean | number | null }= {}
+        qSelAll(".ckm-setting").forEach(v => {
+            const func = v.querySelector(".function")
+            var key = v.getAttribute("data-configurable") ?? ""
+            var value = null
+
+            switch (func?.getAttribute("data-type")) {
+                case ConfigurableSettingsType.BOOLEAN:
+                    value = (func as HTMLInputElement).checked
+                    break
+                case ConfigurableSettingsType.COLOR:
+                    value = (func as HTMLInputElement).value
+                    break
+                case ConfigurableSettingsType.NUMBER:
+                    value = Number((func as HTMLInputElement).value)
+                    break
+            }
+
+            settings[key] = value
+        })
+
+        ckmWorker?.postMessage({
+            "status": "continue",
+            "current_state": infoCopy,
+            "settings": settings,
+            "delta_time": delta / 1000
+        })
+    }}
+
+    const stopCustomKeyboardMode = () => {{
+        ckmWorker?.terminate()
+        startCKMLoop = false
+        ckmWorker = null
+    }}
+
+    const registerCKMScript = async () => {
+        const elm = qSel<HTMLTextAreaElement>("#ckm_script")
+        ckmJSCode = elm?.value || ""
+        const dialog = createDialog("", "Please wait...", DialogType.UNRECOVERABLE)
+        var good = true
+        dialog.show()
+
+        await beginCustomKeyboardMode(ckmJSCode)
+            .catch(_ => {
+                console.log("error")
+                dialog.destroy()
+                good = false
+            })
+
+        if (!good) return
+        scriptApplied = true
+        dialog.destroy()
     }
 
     uiRefresh()
     await initValue()
 
+    //! ckmJSCode will be set here, somewhere
     enableBl?.addEventListener("change", changeEnableBl)
     blMode?.addEventListener("change", changeBlMode)
     brightness?.addEventListener("change", changeBrightness)
@@ -268,4 +613,5 @@ window.addEventListener("DOMContentLoaded", async () => {
     colorM?.addEventListener("change", async () => { await changeBlColor(KeyboardRegion.MIDDLE); await initValue() })
     colorR?.addEventListener("change", async () => { await changeBlColor(KeyboardRegion.RIGHT); await initValue() })
     colorE?.addEventListener("change", async () => { await changeBlColor(KeyboardRegion.EXTRA); await initValue() })
+    registerCKMScriptButton?.addEventListener("click", registerCKMScript)
 })

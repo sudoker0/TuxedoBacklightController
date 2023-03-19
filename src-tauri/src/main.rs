@@ -19,6 +19,7 @@ struct Info<'a> {
 
 static ROOT_PATH: &str = "/sys/devices/platform/tuxedo_keyboard/";
 static INFO_TEMPLATE: Info = Info { brightness: "", color_center: "", color_extra: "", color_left: "", color_right: "", mode: "", state: "" };
+static NEED_TO_CONVERT_ATTR: &'static [&'static str] = &["color_center", "color_extra", "color_left", "color_right"];
 
 fn read_file(path: String) -> thread::Result<String> {
   return thread::spawn(|| {
@@ -50,7 +51,11 @@ fn read_tuxedo_config() -> (HashMap<String, String>, bool) {
 
     match read_file(full_path) {
       Ok(contents) => {
-        config.insert(i.0.to_string(), contents);
+        let mut new_contents = contents.clone();
+        if NEED_TO_CONVERT_ATTR.contains(&i.0.as_str()) {
+          new_contents = "0x".to_owned() + &contents;
+        }
+        config.insert(i.0.to_string(), new_contents);
       }
       Err(_) => {
         success = false;
@@ -81,6 +86,7 @@ fn write_tuxedo_config(prev_info: Info<'_>, info: Info<'_>) -> bool {
 
     let full_path = ROOT_PATH.to_owned() + i.0;
 
+    println!("{}: {}", i.0, i.1);
     match write_file(full_path, i.1.to_string()) {
       Ok(_) => {
         success = true
@@ -91,8 +97,6 @@ fn write_tuxedo_config(prev_info: Info<'_>, info: Info<'_>) -> bool {
         break;
       }
     }
-
-    println!("{}: {}", i.0, i.1);
   }
 
   return success;

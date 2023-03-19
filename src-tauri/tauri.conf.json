@@ -24,7 +24,7 @@
       "icon": [
         "icons/icon.png"
       ],
-      "identifier": "com.quanmcpc.TuxedoBacklightController",
+      "identifier": "com.github.quanmcpc.TuxedoBacklightController",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -35,7 +35,7 @@
       },
       "resources": [],
       "shortDescription": "",
-      "targets": "appimage",
+      "targets": ["appimage", "updater"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
@@ -46,7 +46,12 @@
       "csp": null
     },
     "updater": {
-      "active": false
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://gist.github.com/QuanMCPC/2b25611878075ff814158be1639df1ea"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhCODk0QzlDMTcxQUQxODEKUldTQjBSb1huRXlKaTcrVVlYSUZSZVpleEcwZERkUG1WRnQyOFROZzJWWmN1d2xiNGpxdkJwRnkK"
     },
     "windows": [
       {
@@ -54,7 +59,7 @@
         "height": 425,
         "resizable": true,
         "title": "Tuxedo Backlight Controller",
-        "width": 500,
+        "width": 550,
         "minWidth": 450,
         "minHeight": 420
       }
