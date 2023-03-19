@@ -86,7 +86,6 @@ fn write_tuxedo_config(prev_info: Info<'_>, info: Info<'_>) -> bool {
 
     let full_path = ROOT_PATH.to_owned() + i.0;
 
-    println!("{}: {}", i.0, i.1);
     match write_file(full_path, i.1.to_string()) {
       Ok(_) => {
         success = true

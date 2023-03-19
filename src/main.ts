@@ -1,5 +1,3 @@
-// TODO: Fix bug: dialog
-
 import { invoke } from "@tauri-apps/api/tauri";
 
 type Info = {
@@ -603,7 +601,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     uiRefresh()
     await initValue()
 
-    //! ckmJSCode will be set here, somewhere
     enableBl?.addEventListener("change", changeEnableBl)
     blMode?.addEventListener("change", changeBlMode)
     brightness?.addEventListener("change", changeBrightness)
