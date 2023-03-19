@@ -105,5 +105,5 @@ fn main() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![check_tuxedo_module_exist, read_tuxedo_config, write_tuxedo_config])
     .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .expect("Error: Unable to run Tuxedo Keyboard Controller");
 }
