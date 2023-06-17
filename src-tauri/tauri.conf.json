@@ -24,7 +24,7 @@
       "icon": [
         "icons/icon.png"
       ],
-      "identifier": "com.github.quanmcpc.TuxedoBacklightController",
+      "identifier": "com.github.sudoku0.TuxedoBacklightController",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -49,7 +49,7 @@
       "active": true,
       "dialog": true,
       "endpoints": [
-        "https://gist.githubusercontent.com/QuanMCPC/2b25611878075ff814158be1639df1ea/raw/tauri-app-update:TuxedoBacklightController.json"
+        "https://gist.githubusercontent.com/sudoku0/2b25611878075ff814158be1639df1ea/raw/tauri-app-update:TuxedoBacklightController.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhCODk0QzlDMTcxQUQxODEKUldTQjBSb1huRXlKaTcrVVlYSUZSZVpleEcwZERkUG1WRnQyOFROZzJWWmN1d2xiNGpxdkJwRnkK"
     },
