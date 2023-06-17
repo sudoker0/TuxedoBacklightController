@@ -34,7 +34,7 @@ A minimal UI to control the backlight of Tuxedo/Clevo compatible keyboard.
 ### 2. Steps to build
 - Clone the repository
 ```bash
-git clone https://github.com/sudoku0/TuxedoBacklightController
+git clone https://github.com/sudoker0/TuxedoBacklightController
 cd TuxedoBacklightController
 ```
 
